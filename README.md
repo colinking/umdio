@@ -1,5 +1,10 @@
 #An API for UMD data 
 
+### Fork Status
+This is a fork of the original umdio branch that is focused on rebuilding the API to use Grape and a modular scraper system.
+
+### Original README
+
 Status: We are live at [umd.io](http://umd.io)
 
 To use the API, check out the [docs](http://umd.io).

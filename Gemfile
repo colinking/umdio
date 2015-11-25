@@ -1,20 +1,20 @@
 source 'https://rubygems.org'
 
-gem 'sinatra'
-gem 'sinatra-contrib'
-gem 'sinatra-param', '~> 1.3'
-gem 'mongo'
-gem 'bson_ext', '~> 1.12.0'
-gem 'rake'
+gem 'mongo', '>=2.1' # DB
+# gem 'bson_ext'
+gem 'rake' # Server
 gem 'dotenv'
-gem 'jekyll'
+gem 'jekyll' # Documentation
 gem 'rouge'
+gem 'grape' # API Framework
+gem 'grape-cache_control' # Caching 
+gem 'kaminari'
+gem 'api-pagination'
 
 group :development do
-  gem 'rspec'
-  gem 'sinatra-reloader', :require => 'sinatra/reloader'
+  gem 'rspec' # Testing
   gem 'pry'
-  gem 'shotgun'
+  gem 'shotgun' 
   gem 'better_errors'
 end
 
@@ -26,4 +26,9 @@ end
 # the gems needed for the courses scraper, and likely for other scrapers
 group :scrape do
   gem 'nokogiri'
+  gem 'ruby-progressbar' # Console progress bar
+  gem 'typhoeus' # Asynch HTTP Requests
+  gem 'em-http-request' 
+  gem 'people' # For parsing Professor names
+  # gem 'benchmark' # Benchmarks
 end

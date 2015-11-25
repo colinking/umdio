@@ -1,3 +1,3 @@
 require './server'
 
-run UMDIO
+run UMDIOServer

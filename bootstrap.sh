@@ -63,10 +63,10 @@ sudo apt-get -y install nginx-extras passenger
 sudo apt-get install -y mongodb-org
 
 # setup mongo, initial scrape on databases
-bundle exec rake scrape
+# bundle exec rake scrape
 
 # run tests
-bundle exec rake
+# bundle exec rake
 
 # start nginx with the right config
 sudo sed -i '1i127.0.0.1 api.localhost' /etc/hosts # add a line to hosts file for convenience

@@ -10,7 +10,10 @@ docs/node_modules
 coverage
 log/
 
-#exclude config
+# exclude scraper logs
+app/scrapers/logs/
+
+# exclude config
 mime.types
 
 # temporary files
