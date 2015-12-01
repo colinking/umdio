@@ -7,7 +7,7 @@ require_relative './../scraper_manager.rb'
 class ReviewsScraper < Scraper
 
 	DATABASE = 'umdevals'
-	COLLECTION = 'reviews'
+	COLLECTION = 'professors'
 
 	def initialize 
 		super
@@ -165,7 +165,7 @@ class ReviewsScraper < Scraper
 			})
 
 		end
-		MongoHelper.bulk_write(operations, 'umdevals', 'reviews')
+		MongoHelper.bulk_write(operations, DATABASE, COLLECTION)
 	end
 
 	private 

@@ -58,8 +58,13 @@ class ScraperManager
 		scraper.urls.each do |url_data|
 
 			# Parse out the url and metadata
-			url = url_data[:url]
-			meta = url_data[:meta]
+			if url_data.class == Hash
+				url = url_data[:url]
+				meta = url_data[:meta]
+			else
+				url = url_data
+				meta = nil
+			end
 			
 			request = Typhoeus::Request.new(url)
 			hydra.queue(request)

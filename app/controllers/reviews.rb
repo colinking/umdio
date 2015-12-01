@@ -9,7 +9,7 @@ module UMDIO
 			desc 'Gets a list of all reviews.'
 			paginate
 			get '/' do
-				paginate MongoHelper.distinct('reviews', 'umdevals', 'reviews')
+				paginate MongoHelper.distinct('reviews', 'umdevals', 'professors')
 			end
 
 			desc 'Returns the most recent reviews to ourumd'
@@ -20,7 +20,7 @@ module UMDIO
 
 				results = MongoHelper.aggregate([
 					{:$unwind => '$reviews'}, {:$sort => {'reviews.date': -1}} #, {:$skip => skip_to}, {:$limit => params[:per_page]}
-				], 'umdevals', 'reviews')
+				], 'umdevals', 'professors')
 				
 				paginate results.to_a
 			end
@@ -39,9 +39,9 @@ module UMDIO
 					query[:last_name] = params[:last] if params[:last]
 					query[:reviews] = {:$ne => []}
 					if params[:first] or params[:last]
-						paginate MongoHelper.aggregate([{:$match => query}, {:$project => {:professor => true}}, {:$sort => {:professor => 1}}], 'umdevals', 'reviews').to_a
+						paginate MongoHelper.aggregate([{:$match => query}, {:$project => {:professor => true}}, {:$sort => {:professor => 1}}], 'umdevals', 'professors').to_a
 					else
-						paginate MongoHelper.aggregate([{:$match => {:reviews => {:$ne => []}}}, {:$project => {:professor => true}}, {:$sort => {:professor => 1}}], 'umdevals', 'reviews').to_a
+						paginate MongoHelper.aggregate([{:$match => {:reviews => {:$ne => []}}}, {:$project => {:professor => true}}, {:$sort => {:professor => 1}}], 'umdevals', 'professors').to_a
 					end
 				end
 
@@ -51,7 +51,7 @@ module UMDIO
 				route_param :id do
 
 					after_validation do
-						@professor = MongoHelper.find({_id: params[:id]}, 'umdevals', 'reviews')
+						@professor = MongoHelper.find({_id: params[:id]}, 'umdevals', 'professors')
 					end
 
 					desc 'Returns the reviews for the professor'

@@ -4,15 +4,13 @@ require 'cgi'
 class ProfessorsScraper < Scraper
 
 	DATABASE = 'umdevals'
-	COLLECTION = 'reviews'
+	COLLECTION = 'professors'
 
 	def initialize
 		super
 
 		# The names of the professors are pulled from the dropdown on this page
-		@urls = [
-			{ url: "http://www.ourumd.com/viewreviews/" }
-		]
+		@urls = ["http://www.ourumd.com/viewreviews/"]
 		@review_urls = []
 		@class_urls = []
 	end
