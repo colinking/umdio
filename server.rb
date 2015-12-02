@@ -64,7 +64,6 @@ class UMDIOServer < Grape::API
   # rescue_from :all
 
   # MOUNT ALL RESOURCES HERE
-  mount UMDIO::Reviews
 
   route :any, '*path' do
     error! # or something else
