@@ -63,7 +63,7 @@ class UMDIOServer < Grape::API
   # Tell Grape to catch errors and handle them like a normal API error
   # rescue_from :all
 
-  # register the routes
+  # MOUNT ALL RESOURCES HERE
   mount UMDIO::Reviews
 
   route :any, '*path' do

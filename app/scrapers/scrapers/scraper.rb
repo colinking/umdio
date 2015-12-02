@@ -1,5 +1,5 @@
 
-class Scraper
+class Scraper < Object
 
 	attr_reader :urls
 

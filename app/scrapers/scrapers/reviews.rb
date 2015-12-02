@@ -1,189 +1,184 @@
 
+require 'cgi'
 require 'people'
-
-require_relative './../scraper_manager.rb'
-
 
 class ReviewsScraper < Scraper
 
-	DATABASE = 'umdevals'
-	COLLECTION = 'professors'
+  DATABASE = 'umdevals'
+  COLLECTION = 'professors'
 
-	def initialize 
-		super
+  def initialize 
+    super
 
-		# We're going to need a list of URLs to Professor's pages on ourumd.org
-		# These are stored in Mongo after running a ProfessorScraper
+    # We're going to need a list of URLs to Professor's pages on ourumd.org
+    # These are stored in Mongo after running a ProfessorsScraper
 
-		# So let's run a ProfessorScraper
-		ScraperManager.run([ProfessorsScraper])
+    # Find all of the documents in the MongoDB database
+    results = MongoHelper.find({}, DATABASE, COLLECTION)
 
-		# Now we want to connect to Mongo and pull out the review urls we need
-		client = MongoHelper.open(DATABASE)
+    # Make the array of review urls
+    results.each do |professor_doc|
+      @urls.push({
+        url: getReviewsURL(professor_doc[:professor_abv]),
+        meta: {
+          professor_abv: professor_doc[:professor_abv]
+        }
+      })
+    end
 
-		# Make the array of review urls
-		@urls = []
-		client[COLLECTION].find().each do |review_data|
-			@urls.push({
-				url: review_data[:review_url],
-				meta: {
-					professor_abv: review_data[:professor_abv]
-				}
-			})
-		end
+    # For storing data as we scrape it
+    @professors = {}
+  end
 
-		client.close
+  def url_callback(resp, meta)
 
-		@np = People::NameParser.new
+    # Open the URL and grab the HTML
+    html = Nokogiri::HTML(resp.body)
 
-		# For storing data as we scrape it
-		@reviews = {}
-		@full_names = {}
-		@first_names = {}
-		@last_names = {}
-		@ratings = {}
-	end
+    professor_data = {}
 
-	def url_callback(resp, meta)
+    # 1) Get the Full Name
+    parseName(html, professor_data)
 
-		professor_abv = meta[:professor_abv]
+    # 2) Get the Average Rating
+    parseRating(html, professor_data)
 
-		# Open the URL and grab the HTML
-		review_doc = Nokogiri::HTML(resp.body)
+    # 3) Parse the reviews
+    parseReviews(html, professor_data)
 
-		# 1) Get the Full Name
+    # Insert the data into the global professors hash
+    professor_abv = meta[:professor_abv]
+    @professors[professor_abv] = professor_data
 
-		# The full name is stored in an anchor tag on the page
-		full_name_a = review_doc.search('#content p.pageheading a')[0]
+  end
 
-		# Strip off any extra whitespace
-		full_name = clean_string(full_name_a.text)
+  def done
+    operations = []
 
-		# Use the People library to parse and titlecase the name
-		parsed_name = @np.parse(full_name)
-		@full_names[professor_abv] = parsed_name[:orig]
-		@first_names[professor_abv] = parsed_name[:first]
-		@last_names[professor_abv] = parsed_name[:last]
+    @professors.each_key do |professor_abv|
+      operations.push({
+        update_one: {
+          filter: { professor_abv: professor_abv },
+          update: { '$set': @professors[professor_abv] },
+          upsert: true
+        }
+      })
+    end
 
+    MongoHelper.bulk_write(operations, DATABASE, COLLECTION)
+  end
 
-		# 2) Get the Average Rating
+  private
 
-		# The average rating is stored as an image, where the numeric score is passed in the image src
-		average_rating_img = review_doc.search('#content img')[0]
+  def parseName(html, professor_data)
+    # The full name is stored in an anchor tag on the page
+    full_name_a = html.search('#content p.pageheading a')[0]
 
-		# Get the numeric rating from the src of the img
-		@ratings[professor_abv] = get_rating(average_rating_img)
+    # Strip off any extra whitespace
+    full_name = clean_string(full_name_a.text)
 
-		# 3) Parse the reviews
+    # Use the People library to parse and titlecase the name
+    np = People::NameParser.new
+    parsed_name = np.parse(full_name)
+    professor_data[:professor] = parsed_name[:orig]
+    professor_data[:first_name] = parsed_name[:first]
+    professor_data[:last_name] = parsed_name[:last]
+  end
 
-		# Each review is a table row on the page
-		review_trs = review_doc.search('#content > table tr')
+  def parseRating(html, professor_data)
+    # The average rating is stored as an image, where the numeric score is passed in the image src
+    average_rating_img = html.search('#content img')[0]
 
-		# This array will be used to store objects for the parsed reviews
-		reviews = []
+    # Get the numeric rating from the src of the img
+    professor_data[:rating] = get_rating(average_rating_img)
+  end
 
-		review_trs.each do |review|
-			# Each review is split into 2 td's, one is the sidebar on the left and the other is the text of the review on the right
-			review_sections = review.search('td')
-			sidebar_td = review_sections[0]
-			text_td = review_sections[1]
+  def parseReviews(html, professor_data)
+    # Each review is a table row on the page
+    review_trs = html.search('#content > table tr')
 
-			if sidebar_td != nil
-				# Username
-				username_html = sidebar_td.search('b').first
-				username = clean_string(username_html.text)
+    professor_data[:reviews] = []
 
-				# Rating
-				rating = nil
-				if (average_rating_img = sidebar_td.search('img').first) != nil
-					rating = get_rating(average_rating_img)
-				end
+    review_trs.each do |review|
+      # Each review is split into 2 td's, one is the sidebar on the left and the other is the text of the review on the right
+      review_sections = review.search('td')
+      sidebar_td = review_sections[0]
+      text_td = review_sections[1]
 
-				# Course
-				course_html = sidebar_td.children[4]
-				course = nil
-				# Use regex to match out the course code
-				if course_html.text =~ /Course: ([A-Z]{4}\d\d\d[A-Z]?)/
-					course = $1
-				end
+      if sidebar_td != nil
+        # Username
+        username_html = sidebar_td.search('b').first
+        username = clean_string(username_html.text)
 
-				# Grade
-				grade_html = sidebar_td.children[6]
-				grade = nil
-				# Use regex to match out the expected grade
-				if grade_html.text.scrub("") =~ /Grade Expected: ([A-F][+-]?)/
-					grade = $1
-				end
+        # Rating
+        rating = nil
+        if (average_rating_img = sidebar_td.search('img').first) != nil
+          rating = get_rating(average_rating_img)
+        end
 
-				# Date
-				date_html = sidebar_td.children[8]
-				if date_html
-					date = DateTime.parse(date_html.text)
-				end
-			end
+        # Course
+        course_html = sidebar_td.children[4]
+        course = nil
+        # Use regex to match out the course code
+        if course_html.text =~ /Course: ([A-Z]{4}\d\d\d[A-Z]?)/
+          course = $1
+        end
 
-			if text_td != nil
-				# Review
-				review = clean_string(text_td.text)
-			end
+        # Grade
+        grade_html = sidebar_td.children[6]
+        grade = nil
+        # Use regex to match out the expected grade
+        if grade_html.text.scrub("") =~ /Grade Expected: ([A-F][+-]?)/
+          grade = $1
+        end
 
-			review_obj = {
-				username: username,
-				rating: rating,
-				course: course,
-				grade: grade,
-				date: date,
-				review: review
-			}
+        # Date
+        date_html = sidebar_td.children[8]
+        if date_html
+          date = DateTime.parse(date_html.text)
+        end
+      end
 
-			reviews.push(review_obj)
-		end
+      if text_td != nil
+        # Review
+        review = clean_string(text_td.text)
+      end
 
-		# Insert the review into @reviews
-		@reviews[professor_abv] = reviews
+      review_obj = {
+        username: username,
+        rating: rating,
+        course: course,
+        grade: grade,
+        date: date,
+        review: review
+      }
 
-	end
+      professor_data[:reviews].push(review_obj)
+    end
+  end
 
-	def done
-		operations = []
+  def getReviewsURL(professor_abv)
+    # URL encode the name so that it can go in a URL
+    url_encoded_prof = CGI::escape(professor_abv)
 
-		@reviews.each_key do |professor_abv|
-			operations.push({
-				update_one: {
-					filter: { professor_abv: professor_abv },
-					update: {
-						'$set': {
-							reviews: @reviews[professor_abv],
-							professor: @full_names[professor_abv],
-							first_name: @first_names[professor_abv],
-							last_name: @last_names[professor_abv],
-							rating: @ratings[professor_abv]
-						}
-					},
-					upsert: true
-				}
-			})
+    # URL for a list of the Professor's reviews
+    return "http://www.ourumd.com/reviews/?id=#{url_encoded_prof}"
+  end
 
-		end
-		MongoHelper.bulk_write(operations, DATABASE, COLLECTION)
-	end
-
-	private 
-
-	def get_rating(rating_img)
-		# It's possible that no reviews have been made, so the rating_img could be nil
-		average_rating = nil
-		if rating_img
-			average_rating_src = rating_img['src']
-			# Use regex to capture the number from the src
-			# which is in the format: "stars?avg=3.75"
-			if average_rating_src =~ /avg=([0-9.]+)/
-				# $1 returns the captured value from the regex (from the paraenthesis)
-				average_rating_text = $1
-				# Convert it to a float
-				average_rating = average_rating_text.to_f
-			end
-		end
-		return average_rating
-	end
+  def get_rating(image_html)
+    # It's possible that no reviews have been made, so the image_html could be nil
+    average_rating = nil
+    if image_html
+      average_rating_src = image_html['src']
+      # Use regex to capture the number from the src
+      # which is in the format: "stars?avg=3.75"
+      if average_rating_src =~ /avg=([0-9.]+)/
+        # $1 returns the captured value from the regex (from the paraenthesis)
+        average_rating_text = $1
+        # Convert it to a float
+        average_rating = average_rating_text.to_f
+      end
+    end
+    return average_rating
+  end
 end

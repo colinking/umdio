@@ -13,7 +13,8 @@ require_relative './scrapers/scraper.rb'
 Dir['./scrapers/*.rb'].each { |file| require file }
 
 class ScraperManager
-	MAX_CONCURRENT_HTTP_REQ = 10 # Try
+	# If you set this too high, you will see that a large number of requests fail and are retried
+	MAX_CONCURRENT_HTTP_REQ = 10
 
 	def self.run(scraper_classes)
 		puts "#{scraper_classes.length} Scraper(s) Scraping"
