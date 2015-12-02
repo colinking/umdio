@@ -19,7 +19,6 @@ if ARGV.length > 0
 				scrapers.push(scraper_class)
 			rescue NameError
 				puts "SCRAPER DRIVER ERROR: Scraper specified (#{scraper}) is not a known scraper"
-				raise
 			end
 		end
 		ScraperManager.run(scrapers)

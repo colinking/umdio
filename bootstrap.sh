@@ -31,18 +31,12 @@ npm install bower
 cd ..
 
 # install some ruby dependencies
-sudo apt-get -y install autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev
+# sudo apt-get -y install autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev
 
-# install ruby and rbenv
-git clone https://github.com/sstephenson/rbenv.git ~/.rbenv
-git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build
-export PATH="$HOME/.rbenv/bin:$PATH"
-echo $PATH
-eval "$(rbenv init -)"
-echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bashrc
-echo 'eval "$(rbenv init -)"' >> ~/.bashrc
-rbenv install 2.2.1
-rbenv global 2.2.1
+# install ruby and rvm
+gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3
+\curl -sSL https://get.rvm.io | bash -s stable --ruby
+source /home/vagrant/.rvm/scripts/rvm
 
 # so that rdoc and ri never get installed with gems
 echo "gem: --no-document" >> ~/.gemrc 

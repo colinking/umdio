@@ -30,5 +30,5 @@ group :scrape do
   gem 'typhoeus' # Asynch HTTP Requests
   gem 'em-http-request' 
   gem 'people' # For parsing Professor names
-  # gem 'benchmark' # Benchmarks
+  gem 'benchmark' # Benchmarks
 end
