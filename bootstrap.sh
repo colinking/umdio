@@ -32,6 +32,7 @@ cd ..
 
 # Make the logs folder for mongo
 mkdir /home/vagrant/umdio/app/logs
+touch /home/vagrant/umdio/app/logs/mongo.log
 
 # install some ruby dependencies
 # sudo apt-get -y install autoconf bison build-essential libssl-dev libyaml-dev libreadline6-dev zlib1g-dev libncurses5-dev libffi-dev libgdbm3 libgdbm-dev
