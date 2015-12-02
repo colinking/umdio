@@ -11,7 +11,7 @@ coverage
 log/
 
 # exclude scraper logs
-app/scrapers/logs/
+app/scrapers/logs/*
 
 # exclude config
 mime.types
